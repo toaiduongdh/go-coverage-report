@@ -1,7 +1,9 @@
 package main
 
 import (
+	"os"
 	"path"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -13,8 +15,13 @@ type Coverage struct {
 	MissedStmt  int64
 }
 
-func ParseCoverage(filename string) (*Coverage, error) {
-	pp, err := ParseProfiles(filename)
+func ParseCoverage(filenames string) (*Coverage, error) {
+	tempFile, err := os.CreateTemp("", "*")
+	if err != nil {
+		return nil, err
+	}
+	MergeProfilesFromFiles(strings.Split(filenames, ","), tempFile)
+	pp, err := ParseProfiles(tempFile.Name())
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse profiles")
 	}

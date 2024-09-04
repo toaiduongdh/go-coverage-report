@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -10,9 +11,9 @@ import (
 )
 
 var usage = strings.TrimSpace(fmt.Sprintf(`
-Usage: %s [OPTIONS] <OLD_COVERAGE_FILE> <NEW_COVERAGE_FILE> <CHANGED_FILES_FILE>
+Usage: %s [OPTIONS] <OLD_COVERAGE_FILES> <NEW_COVERAGE_FILES> <CHANGED_FILES_FILE>
 
-Parse the OLD_COVERAGE_FILE and NEW_COVERAGE_FILE and compare the coverage of the
+Parse the OLD_COVERAGE_FILES and NEW_COVERAGE_FILES and compare the coverage of the
 files listed in CHANGED_FILES_FILE. The result is printed to stdout as a simple
 Markdown table with emojis indicating the coverage change per package.
 
@@ -23,9 +24,14 @@ coverage profile which uses the full package name to identify the files
 packages with a different name than their directory are not supported.
 
 ARGUMENTS:
-  OLD_COVERAGE_FILE   The path to the old coverage file in the format produced by go test -coverprofile
-  NEW_COVERAGE_FILE   The path to the new coverage file in the same format as OLD_COVERAGE_FILE
-  CHANGED_FILES_FILE  The path to the file containing the list of changed files encoded as JSON string array
+  OLD_COVERAGE_FILES   The path to the old coverage file in the format produced by go test -coverprofile
+  NEW_COVERAGE_FILES   The path to the new coverage file in the same format as OLD_COVERAGE_FILES
+
+ENVS:
+If format github_comment is used, these environemtns must be set:
+	GITHUB_TOKEN
+	GITHUB_PULL_REQUEST_ID
+	GITHUB_REPOSITORY
 
 OPTIONS:
 `, filepath.Base(os.Args[0])))
@@ -46,7 +52,7 @@ func main() {
 
 	flag.String("root", "", "The import path of the tested repository to add as prefix to all paths of the changed files")
 	flag.String("trim", "", "trim a prefix in the \"Impacted Packages\" column of the markdown report")
-	flag.String("format", "markdown", "output format (currently only 'markdown' is supported)")
+	flag.String("format", "markdown", "output format as a markdown to std out or to a github PR comments")
 
 	err := run(programArgs())
 	if err != nil {
@@ -106,6 +112,8 @@ func run(oldCovPath, newCovPath, changedFilesPath string, opts options) error {
 		fmt.Fprintln(os.Stdout, report.Markdown())
 	case "json":
 		fmt.Fprintln(os.Stdout, report.JSON())
+	case "github_comment":
+		createOrUpdateGithubComment(context.Background(), report.Markdown())
 	default:
 		return fmt.Errorf("unsupported format: %q", opts.format)
 	}
