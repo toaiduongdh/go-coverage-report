@@ -1,7 +1,8 @@
 package main
 
 import (
-	"encoding/json"
+	"bufio"
+	"bytes"
 	"os"
 	"path/filepath"
 )
@@ -12,10 +13,10 @@ func ParseChangedFiles(filename, prefix string) ([]string, error) {
 		return nil, err
 	}
 
+	scanner := bufio.NewScanner(bytes.NewReader(data))
 	var files []string
-	err = json.Unmarshal(data, &files)
-	if err != nil {
-		return nil, err
+	for scanner.Scan() {
+		files = append(files, scanner.Text())
 	}
 
 	for i, file := range files {
