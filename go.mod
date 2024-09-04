@@ -1,4 +1,4 @@
-module github.com/fgrosse/go-coverage-report
+module github.com/toaiduongdh/go-coverage-report
 
 go 1.21
 
